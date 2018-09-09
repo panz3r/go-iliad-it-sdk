@@ -6,7 +6,7 @@ import (
 	"net/url"
 )
 
-func getPage(url string) (*http.Response, error) {
+func getPageWithToken(url string, userToken string) (*http.Response, error) {
 	// Create HTTP client with timeout
 	client := &http.Client{}
 
@@ -16,6 +16,8 @@ func getPage(url string) (*http.Response, error) {
 		log.Fatal(reqErr)
 		return nil, reqErr
 	}
+
+	request.Header.Set("cookie", "ACCOUNT_SESSID="+userToken)
 
 	// Make request
 	response, err := client.Do(request)
