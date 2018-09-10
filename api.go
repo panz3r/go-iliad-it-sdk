@@ -35,6 +35,7 @@ type UserInfo struct {
 
 // UserCreditInfo contains CreditInfo (such as call time, messages count, internet traffic, etc.) for a User
 type UserCreditInfo struct {
+	AvailableCredit         string
 	CallTime                string
 	MessagesCount           string
 	MultimediaMessagesCount string
@@ -130,6 +131,8 @@ func (clt *Client) GetUserCreditInfo() (UserCreditInfo, error) {
 		log.Fatal("Error loading HTTP response body. ", gqErr)
 		return crdInfo, gqErr
 	}
+
+	crdInfo.AvailableCredit = document.Find("div.page.p-conso h2 b.red").First().Text()
 
 	document.Find("div.conso-infos .conso__text .red").Each(func(i int, s *goquery.Selection) {
 		switch i {
