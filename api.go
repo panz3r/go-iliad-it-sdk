@@ -20,6 +20,7 @@ import (
 var baseURL = "https://www.iliad.it/account/"
 
 var creditPageEndpoint = "consumi-e-credito"
+var optionsPageEndpoint = "le-mie-opzioni"
 
 // Client allows to interact with Iliad IT services
 type Client struct {
@@ -40,6 +41,16 @@ type UserCreditInfo struct {
 	MessagesCount           string
 	MultimediaMessagesCount string
 	InternetTraffic         string
+}
+
+// UserOptionsStatus contains Options activation statuses for a User
+type UserOptionsStatus struct {
+	LTE                                 bool
+	PremiumNumbers                      bool
+	OverThresholdInternetTraffic        bool
+	LocalOverThresholdInternetTraffic   bool
+	RoamingOverThresholdInternetTraffic bool
+	ShowLast3PhoneNumberDigits          bool
 }
 
 // NewClient initializes a new Iliad IT client
@@ -66,7 +77,6 @@ func (clt *Client) Login(username string, password string) (string, error) {
 	}
 	defer page.Body.Close()
 
-	// Create a goquery document from the HTTP response
 	document, gqErr := goquery.NewDocumentFromReader(page.Body)
 	if gqErr != nil {
 		log.Fatal("Error loading HTTP response body. ", gqErr)
@@ -80,7 +90,6 @@ func (clt *Client) Login(username string, password string) (string, error) {
 	}
 
 	cookies := page.Cookies()
-	// log.Printf("Cookies: %+v", cookies)
 	tknCookie := getCookieByName(cookies, "ACCOUNT_SESSID")
 	if tknCookie == "" {
 		log.Fatal("Cookie token not found")
@@ -101,7 +110,6 @@ func (clt *Client) GetUserInfo() (UserInfo, error) {
 	}
 	defer page.Body.Close()
 
-	// Create a goquery document from the HTTP response
 	document, gqErr := goquery.NewDocumentFromReader(page.Body)
 	if gqErr != nil {
 		log.Fatal("Error loading HTTP response body. ", gqErr)
@@ -125,7 +133,6 @@ func (clt *Client) GetUserCreditInfo() (UserCreditInfo, error) {
 	}
 	defer page.Body.Close()
 
-	// Create a goquery document from the HTTP response
 	document, gqErr := goquery.NewDocumentFromReader(page.Body)
 	if gqErr != nil {
 		log.Fatal("Error loading HTTP response body. ", gqErr)
@@ -151,6 +158,45 @@ func (clt *Client) GetUserCreditInfo() (UserCreditInfo, error) {
 	})
 
 	return crdInfo, nil
+}
+
+// GetUserOptions can be used to retrieve Options status for the current User
+func (clt *Client) GetUserOptions() (UserOptionsStatus, error) {
+	optsSts := UserOptionsStatus{}
+
+	page, err := getPageWithToken(baseURL+optionsPageEndpoint, clt.userToken)
+	if err != nil {
+		return optsSts, err
+	}
+	defer page.Body.Close()
+
+	document, gqErr := goquery.NewDocumentFromReader(page.Body)
+	if gqErr != nil {
+		log.Fatal("Error loading HTTP response body. ", gqErr)
+		return optsSts, gqErr
+	}
+
+	document.Find("div.array-status div.grid-l.as__item").Each(func(i int, o *goquery.Selection) {
+		status := o.Find("div.as__status.as__status--on.as__status--active").Length() > 0
+		switch i {
+		case 0:
+			optsSts.LTE = status
+			break
+		case 1:
+			optsSts.PremiumNumbers = status
+			break
+		case 2:
+			optsSts.OverThresholdInternetTraffic = status
+		case 3:
+			optsSts.LocalOverThresholdInternetTraffic = status
+		case 4:
+			optsSts.RoamingOverThresholdInternetTraffic = status
+		case 5:
+			optsSts.ShowLast3PhoneNumberDigits = status
+		}
+	})
+
+	return optsSts, nil
 }
 
 // Private Methods
