@@ -21,6 +21,7 @@ var baseURL = "https://www.iliad.it/account/"
 
 var creditPageEndpoint = "consumi-e-credito"
 var optionsPageEndpoint = "le-mie-opzioni"
+var servicesPageEndpoint = "i-miei-servizi"
 
 // Client allows to interact with Iliad IT services
 type Client struct {
@@ -51,6 +52,16 @@ type UserOptionsStatus struct {
 	LocalOverThresholdInternetTraffic   bool
 	RoamingOverThresholdInternetTraffic bool
 	ShowLast3PhoneNumberDigits          bool
+}
+
+// UserServicesStatus contains Services activation statuses for a User
+type UserServicesStatus struct {
+	BlockHiddenNumbers  bool
+	RoamingVoicemail    bool
+	BlockRedirect       bool
+	AppearAsAbsent      bool
+	QuickNumbers        bool
+	CallsMessagesFilter bool
 }
 
 // NewClient initializes a new Iliad IT client
@@ -213,16 +224,64 @@ func (clt *Client) GetUserOptions() (UserOptionsStatus, error) {
 			break
 		case 2:
 			optsSts.OverThresholdInternetTraffic = status
+			break
 		case 3:
 			optsSts.LocalOverThresholdInternetTraffic = status
+			break
 		case 4:
 			optsSts.RoamingOverThresholdInternetTraffic = status
+			break
 		case 5:
 			optsSts.ShowLast3PhoneNumberDigits = status
+			break
 		}
 	})
 
 	return optsSts, nil
+}
+
+// GetUserServices can be used to retrieve Services status for the current User
+func (clt *Client) GetUserServices() (UserServicesStatus, error) {
+	svcsSts := UserServicesStatus{}
+
+	page, err := getPageWithToken(baseURL+servicesPageEndpoint, clt.userToken)
+	if err != nil {
+		return svcsSts, err
+	}
+	defer page.Body.Close()
+
+	document, gqErr := goquery.NewDocumentFromReader(page.Body)
+	if gqErr != nil {
+		log.Fatal("Error loading HTTP response body. ", gqErr)
+		return svcsSts, gqErr
+	}
+
+	document.Find("div.array-status div.grid-l.as__item").Each(func(i int, o *goquery.Selection) {
+		status := o.Find("div.as__status.as__status--on.as__status--active").Length() > 0
+
+		switch i {
+		case 0:
+			svcsSts.BlockHiddenNumbers = status
+			break
+		case 1:
+			svcsSts.RoamingVoicemail = status
+			break
+		case 2:
+			svcsSts.BlockRedirect = status
+			break
+		case 3:
+			svcsSts.AppearAsAbsent = status
+			break
+		case 4:
+			svcsSts.QuickNumbers = status
+			break
+		case 5:
+			svcsSts.CallsMessagesFilter = status
+			break
+		}
+	})
+
+	return svcsSts, nil
 }
 
 // Private Methods
