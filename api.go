@@ -23,47 +23,6 @@ var creditPageEndpoint = "consumi-e-credito"
 var optionsPageEndpoint = "le-mie-opzioni"
 var servicesPageEndpoint = "i-miei-servizi"
 
-// Client allows to interact with Iliad IT services
-type Client struct {
-	userToken string
-}
-
-// UserInfo contains general info about a User
-type UserInfo struct {
-	ID          string
-	Name        string
-	PhoneNumber string
-}
-
-// UserCreditInfo contains CreditInfo (such as call time, messages count, internet traffic, etc.) for a User
-type UserCreditInfo struct {
-	AvailableCredit         string
-	CallTime                string
-	MessagesCount           string
-	MultimediaMessagesCount string
-	InternetTraffic         string
-}
-
-// UserOptionsStatus contains Options activation statuses for a User
-type UserOptionsStatus struct {
-	LTE                                 bool
-	PremiumNumbers                      bool
-	OverThresholdInternetTraffic        bool
-	LocalOverThresholdInternetTraffic   bool
-	RoamingOverThresholdInternetTraffic bool
-	ShowLast3PhoneNumberDigits          bool
-}
-
-// UserServicesStatus contains Services activation statuses for a User
-type UserServicesStatus struct {
-	BlockHiddenNumbers  bool
-	RoamingVoicemail    bool
-	BlockRedirect       bool
-	AppearAsAbsent      bool
-	QuickNumbers        bool
-	CallsMessagesFilter bool
-}
-
 // NewClient initializes a new Iliad IT client
 func NewClient() Client {
 	return Client{}
