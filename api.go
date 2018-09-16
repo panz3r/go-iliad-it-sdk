@@ -67,10 +67,14 @@ func NewClientWithToken(token string) Client {
 
 // Login can be used to get an auth token for the current user to access Iliad IT services
 func (clt *Client) Login(username string, password string) (string, error) {
-	page, err := postForm(baseURL, url.Values{
+	// Format user credentials as FormData
+	authForm := url.Values{
 		"login-ident": {username},
 		"login-pwd":   {password},
-	})
+	}
+
+	// First request to authenticated user
+	page, err := postForm(baseURL, authForm)
 	if err != nil {
 		log.Fatal(err)
 		return "", err
@@ -83,12 +87,14 @@ func (clt *Client) Login(username string, password string) (string, error) {
 		return "", gqErr
 	}
 
+	// Check for submitted data errors
 	iErr := getError(document)
 	if iErr != nil {
 		log.Fatal(iErr)
 		return "", iErr
 	}
 
+	// Retrieve user token for current session
 	cookies := page.Cookies()
 	tknCookie := getCookieByName(cookies, "ACCOUNT_SESSID")
 	if tknCookie == "" {
@@ -96,6 +102,26 @@ func (clt *Client) Login(username string, password string) (string, error) {
 		return "", errors.New("Token not available")
 	}
 
+	// Second request to activate session token (otherwise token won't be valid)
+	aPage, err := postFormWithToken(baseURL, authForm, tknCookie)
+	if err != nil {
+		log.Fatal("Confirm token request failed", err)
+		return "", err
+	}
+
+	aDoc, err := goquery.NewDocumentFromReader(aPage.Body)
+	if err != nil {
+		log.Fatal("Error loading HTTP response body. ", err)
+		return "", err
+	}
+
+	iaErr := getError(aDoc)
+	if iaErr != nil {
+		log.Fatal(iaErr)
+		return "", iaErr
+	}
+
+	// Set Client user token and return it
 	clt.userToken = tknCookie
 	return tknCookie, nil
 }
